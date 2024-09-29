@@ -1,0 +1,63 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+# Parameters
+weeks = 52 * 15  # total number of weeks for data collection (3 years)
+cleaning_interval_weeks = 52  # number of weeks between each cleaning (approximately 6 months)
+initial_efficiency = 95  # starting efficiency (%)
+base_scaling_rate = 0.6  # base efficiency drop per week due to scaling (%)
+min_efficiency = 65  # Minimum efficiency throughout operation (70%)
+recovery_decline_rate = 1  # Rate of decline in maximum efficiency after each cleaning
+
+# Generate week numbers and dates
+week_number = np.arange(1, weeks + 1)
+dates = pd.date_range(start="2008-01-01", periods=weeks, freq="W-SUN")  # Create date range for 3 years (weekly)
+
+# Simulate seasonal effects using a sine wave to modulate the scaling rate
+seasonal_effects = 1.1*np.sin(2 * np.pi* (week_number % 52) / 52)  # One full cycle per year
+scaling_rate = base_scaling_rate + 0.2 * seasonal_effects  # Modulate scaling rate with seasonality
+
+# Initialize efficiency array
+efficiency = np.zeros(weeks)
+max_efficiency = initial_efficiency  # Maximum efficiency that decreases slightly after each cleaning
+
+# Simulate efficiency drop and recovery with seasonal effects and reduced noise
+for week in range(weeks):
+    if week % cleaning_interval_weeks == 0 and week != 0:
+        # After cleaning, efficiency recovers to near initial efficiency with reduced noise
+        efficiency[week] = np.random.uniform(0.9, 0.99)*max_efficiency + np.random.uniform(-0.5, 0.5)
+    else:
+        if week == 0:
+            efficiency[week] = np.random.uniform(0.82, 0.9)*initial_efficiency + np.random.uniform(-0.5, 0)  # Initial value with reduced noise
+        else:
+            efficiency[week] = efficiency[week - 1] - np.random.uniform(0.9, 0.99)*scaling_rate[week] + np.random.uniform(0, 0.5)  # Drop with reduced noise
+            # Ensure efficiency does not drop below minimum
+            '''if efficiency[week] < min_efficiency:
+                efficiency[week] = np.random.uniform(1, 1.1)*min_efficiency + np.random.uniform(0, 0.5)'''
+
+# Create a DataFrame
+data = pd.DataFrame({
+    'Date': dates,
+    'Week Number': week_number,
+    'Efficiency (%)': efficiency
+})
+
+# Display the first few rows
+print(data)
+
+# Plot the efficiency over time
+plt.figure(figsize=(12, 6))
+plt.plot(data['Date'][::], data['Efficiency (%)'][::],'o')
+plt.title('Heat Exchanger Efficiency Over Time (10 Years of Weekly Data)')
+plt.xlabel('Date')
+plt.ylabel('Efficiency (%)')
+plt.legend(['Efficiency'])
+plt.ylim(min_efficiency - 10, initial_efficiency + 10)
+plt.grid(True)
+plt.show()
+
+# Save the data to a CSV file
+%cd /content/drive/MyDrive/
+data.to_csv('HEXeff_data.csv')
+print(data.shape)
